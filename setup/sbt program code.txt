@@ -1,0 +1,209 @@
+import java.text.SimpleDateFormat
+import com.typesafe.config.{Config, ConfigFactory}
+import java.io.{File, InputStream}
+import java.net.URLDecoder
+import java.security.MessageDigest
+import java.util.Calendar
+import org.apache.commons.net.util.SubnetUtils
+import org.apache.hadoop.fs.{FileSystem,Path}
+import org.apache.spark.graphx.{EdgeDirection, _}
+import org.apache.spark.sql._
+import org.apache.spark.sql.types.{StructField, StructType}
+import java.io.PrintWriter
+import org.apache.spark.sql.functions.explode
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.SQLImplicits
+
+object jsoncsv {
+def main(args: Array[String]) = {
+
+val spark = SparkSession
+.builder()
+.appName("jsoncsv")
+.config("spark.sql.warehouse.dir","/warehouse/tablespace/managed/hive")
+.config("hive.metastore.uris", "thrift://hdp2.infocepts.com:9083")
+.master("local")
+.enableHiveSupport()
+.getOrCreate()
+
+var a = args(0)
+var b = args(1)
+val jsonfile = "/user/bctfeb20-bigdata-jaskeerat.s/"+a
+val csvfile = "/user/bctfeb20-bigdata-jaskeerat.s/"+b
+
+val rdd = spark.read.format("json").load(jsonfile)
+val rdd1 = rdd.select(explode(col("restaurants.restaurant")))
+val rdd2 = rdd1.select(col("col.R.res_id") as "Restaurant Id",col("col.name") as "Restaurant Name",col("col.location.country_id") as "Country Code",col("col.location.city") as "City",col("col.location.address") as "Address",col("col.location.locality") as "Locality",col("col.location.locality_verbose") as "Locality Verbose",col("col.location.longitude") as "Longitude",col("col.location.latitude") as "Latitude",col("col.cuisines") as "Cuisines",col("col.average_cost_for_two") as "Average Cost for two",col("col.currency") as "Currency",col("col.has_table_booking") as "Has Table booking",col("col.has_online_delivery") as "Has Online delivery",col("col.is_delivering_now") as "Is delivering now",col("col.switch_to_order_menu") as "Switch to order menu",col("col.price_range") as "Price range", col("col.user_rating.aggregate_rating") as "Aggregate rating",col("col.user_rating.rating_text") as "Rating text",col("col.user_rating.votes") as "Votes")
+rdd2.write.option("header","true").csv(csvfile)
+
+spark.stop()
+
+}
+}
+
+#shell.sh
+#!bin/bash
+echo "Enter json file name"
+read c
+echo "Enter csv file name"
+read d
+spark-submit --master yarn --deploy-mode "client" --name "testingApplication" --driver-memory 512m --driver-cores 1 --num-executors 3 --executor-cores 1 --executor-memory 512m --class jsoncsv /home/bctfeb20-bigdata-jaskeerat.s/test_project_jaskeerat/target/scala-2.11/test_project_jaskeerat_2.11-1.0.jar $c $d
+
+
+=====================================================================================================================================================
+
+import java.text.SimpleDateFormat
+import com.typesafe.config.{Config, ConfigFactory}
+import java.io.{File, InputStream}
+import java.net.URLDecoder
+import java.security.MessageDigest
+import java.util.Calendar
+import org.apache.commons.net.util.SubnetUtils
+import org.apache.hadoop.fs.{FileSystem,Path}
+import org.apache.spark.graphx.{EdgeDirection, _}
+import org.apache.spark.sql._
+import org.apache.spark.sql.types.{StructField, StructType}
+import java.io.PrintWriter
+import org.apache.spark.sql.functions.explode
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.SQLImplicits
+
+object jsoncsv {
+def main(args: Array[String]) = {
+
+val spark = SparkSession
+.builder()
+.appName("jsoncsv")
+.config("spark.sql.warehouse.dir","/warehouse/tablespace/managed/hive")
+.config("hive.metastore.uris", "thrift://hdp2.infocepts.com:9083")
+.master("local")
+.enableHiveSupport()
+.getOrCreate()
+
+var a = args(0)
+var b = args(1)
+var c = args(2)
+
+spark.sql(s"load data inpath '$a' into Table $b partition(filedate = $c)")
+spark.stop()
+
+}
+}
+
+#load.sh
+#!bin/bash
+echo "Enter the full path"
+read a
+echo "Enter the table name with database"
+read b
+echo "Enter the partition"
+read c
+spark-submit --master yarn --deploy-mode "client" --name "testingApplication" --driver-memory 512m --driver-cores 1 --num-executors 3 --executor-cores 1 --executor-memory 512m --class jsoncsv /home/bctfeb20-bigdata-jaskeerat.s/test_project_jaskeerat/target/scala-2.11/test_project_jaskeerat_2.11-1.0.jar $a $b $c
+
+bct_bi_20.zomato_jassi_example
+/user/bctfeb20-bigdata-jaskeerat.s/zomato_20190609.csv/part-00000-43a1d3c8-3eb6-4819-b95e-9b327cb42d76-c000.csv
+/user/bctfeb20-bigdata-jaskeerat.s/zomato_20190610.csv/part-00000-aebb931f-8676-4b58-b481-ea8ad0135489-c000.csv
+/user/bctfeb20-bigdata-jaskeerat.s/zomato_20190611.csv/part-00000-5bd5706c-8823-42af-8ddb-00bc536d2380-c000.csv
+/user/bctfeb20-bigdata-jaskeerat.s/zomato_20190612.csv/part-00000-1238d044-df6f-430d-b480-27b38bbee841-c000.csv
+/user/bctfeb20-bigdata-jaskeerat.s/zomato_20190613.csv/part-00000-8d47f206-ce78-4237-8bfc-1db1866fa076-c000.csv
+
+=====================================================================================================================================================
+
+
+#hive file
+
+INSERT OVERWRITE table bct_bi_20.zomato_summary_jaskeerat_example
+PARTITION(p_filedate,p_country_name)
+select
+CAST(`Restaurant ID` as INT),
+CAST(`Restaurant Name` as STRING),
+CAST(zomato_jassi_source.`Country Code` as INT),
+CAST(`City` as STRING),
+CAST(`Address` as STRING),
+CAST(`Locality` as STRING),
+CAST(`Locality Verbose` as STRING),
+CAST(`Longitude` as STRING),
+CAST(`Latitude` as STRING),
+CAST(`Cuisines` as STRING),
+CAST(`Average Cost for two` as INT),
+CAST(`Currency` as STRING),
+CAST(`Has Table booking` as INT),
+CAST(`Has Online delivery` as INT),
+CAST(`Is delivering now` as INT),
+CAST(`Switch to order menu` as INT),
+CAST(`Price range` as INT),
+CAST(`Aggregate rating` as DOUBLE),
+CAST(`Rating text` as STRING),
+CAST(`Votes` as INT),
+null,
+null,
+FROM_UNIXTIME( UNIX_TIMESTAMP()),
+CURRENT_USER(),
+CAST(zomato_jassi_source.`filedate` as INT),
+CAST(dim_country_jassi.`Country` as STRING)
+from bct_bi_20.zomato_jassi_source,bct_bi_20.dim_country_jassi
+where zomato_jassi_source.`Country Code`=dim_country_jassi.`Country code`;
+
+UPDATE bct_bi_20.zomato_summary_jaskeerat_example SET `m_rating_colour` = (
+CASE WHEN (`rating text` = "Poor" and (`aggregate rating` >=1.9 and `aggregate rating` <=2.4)) THEN "Red" 
+WHEN (`rating text` = "Average" and (`aggregate rating` >=2.5 and `aggregate rating` <=3.4)) THEN "Amber"
+WHEN (`rating text` = "Good" and (`aggregate rating` >=3.5 and `aggregate rating` <=3.9)) THEN "Light Green"
+WHEN (`rating text` = "Very Good" and (`aggregate rating` >=4.0 and `aggregate rating` <=4.4)) THEN "Green"
+WHEN (`rating text` = "Excellent" and (`aggregate rating` >=4.5 and `aggregate rating` <=5.0)) THEN "Gold"
+ELSE 'NA' END);
+
+UPDATE bct_bi_20.zomato_summary_jaskeerat_example SET `m_cuisines` = (
+CASE 
+WHEN (`cuisines` like '%Assamese%') THEN "Indian" 
+WHEN (`cuisines` like '%Andhra%') THEN "Indian" 
+WHEN (`cuisines` like '%Awadhi%') THEN "Indian"
+WHEN (`cuisines` like '%Bengali%') THEN "Indian"
+WHEN (`cuisines` like '%Bihari%') THEN "Indian"
+WHEN (`cuisines` like '%Biryani%') THEN "Indian"
+WHEN (`cuisines` like '%Chettinad%') THEN "Indian"
+WHEN (`cuisines` like '%Curry%') THEN "Indian"
+WHEN (`cuisines` like '%Gujrati%') THEN "Indian"
+WHEN (`cuisines` like '%Goan%') THEN "Indian"
+WHEN (`cuisines` like '%Hyderabadi%') THEN "Indian"
+WHEN (`cuisines` like '%Indian%') THEN "Indian"
+WHEN (`cuisines` like '%Kashmiri%') THEN "Indian"
+WHEN (`cuisines` like '%Kerala%') THEN "Indian"
+WHEN (`cuisines` like '%Lucknowi%') THEN "Indian"
+WHEN (`cuisines` like '%Maharashtrian%') THEN "Indian"
+WHEN (`cuisines` like '%Modern Indian%') THEN "Indian"
+WHEN (`cuisines` like '%Mangalorean%') THEN "Indian"
+WHEN (`cuisines` like '%Mughlai%') THEN "Indian"
+WHEN (`cuisines` like '%Malwani%') THEN "Indian"
+WHEN (`cuisines` like '%Mithai%') THEN "Indian"
+WHEN (`cuisines` like '%Naga%') THEN "Indian"
+WHEN (`cuisines` like '%North Indian%') THEN "Indian"
+WHEN (`cuisines` like '%Oriya%') THEN "Indian"
+WHEN (`cuisines` like '%Rajasthani%') THEN "Indian"
+WHEN (`cuisines` like '%South Indian%') THEN "Indian"
+WHEN (`cuisines` like '%Parsi%') THEN "Indian"
+WHEN (`cuisines` = "North Indian") THEN "Indian"
+WHEN (`cuisines` = "South Indian") THEN "Indian"
+WHEN (`cuisines` = "Modern Indian") THEN "Indian"
+ELSE 'World Cuisines' END);
+
+
+UPDATE bct_bi_20.zomato_summary_jaskeerat_example SET `cuisines` = (
+CASE
+WHEN `cuisines` is null THEN "NA"
+ELSE `cuisines` END);
+
+UPDATE bct_bi_20.zomato_summary_jaskeerat_example SET `votes` = "NA" WHERE `votes` IS NULL;
+UPDATE bct_bi_20.zomato_summary_jaskeerat_example SET `locality` = "NA" WHERE `locality` IS NULL;
+UPDATE bct_bi_20.zomato_summary_jaskeerat_example SET `locality verbose` = "NA" WHERE `locality verbose` IS NULL;
+UPDATE bct_bi_20.zomato_summary_jaskeerat_example SET `address` = "NA" WHERE `address` IS NULL;
+UPDATE bct_bi_20.zomato_summary_jaskeerat_example SET `longitude` = "NA" WHERE `longitude` IS NULL;
+UPDATE bct_bi_20.zomato_summary_jaskeerat_example SET `latitude` = "NA" WHERE `latitude` IS NULL;
+UPDATE bct_bi_20.zomato_summary_jaskeerat_example SET `rating text` = "NA" WHERE `rating text` IS NULL;
+
+
+#!bin/bash
+echo 'Running the hivefile.hql file'
+hive -f hivefile.hql
+echo 'all the transformations are successful'

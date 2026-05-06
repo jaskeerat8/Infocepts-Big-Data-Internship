@@ -1,0 +1,177 @@
+### Installing HDFS ###
+
+sudo apt update
+sudo apt upgrade
+sudo apt install openjdk-11-jdk
+java -version
+
+sudo apt install openssh-server
+ssh-keygen -t rsa
+cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+chmod 640 ~/.ssh/authorized_keys
+sudo service ssh start
+
+cd ~
+wget https://downloads.apache.org/hadoop/common/stable/hadoop-3.4.0.tar.gz
+tar -xzvf hadoop-3.4.0.tar.gz
+mv hadoop-3.4.0 hadoop
+
+
+### Add the following lines to ~/.bashrc ###
+sudo vim ~/.bashrc
+
+export HADOOP_HOME=/home/jaskeerat/hadoop
+export HADOOP_INSTALL=$HADOOP_HOME
+export HADOOP_MAPRED_HOME=$HADOOP_HOME
+export HADOOP_COMMON_HOME=$HADOOP_HOME
+export HADOOP_HDFS_HOME=$HADOOP_HOME
+export HADOOP_YARN_HOME=$HADOOP_HOME
+export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+export PATH=$PATH:$HADOOP_HOME/sbin:$HADOOP_HOME/bin
+export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib/native"
+export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+export PATH=$PATH:$JAVA_HOME/bin
+
+source ~/.bashrc
+
+sudo vim $HADOOP_HOME/etc/hadoop/hadoop-env.sh
+export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+
+
+### Add the following configurations ###
+cd hadoop/
+mkdir -p ~/hadoopdata/hdfs/{namenode,datanode}
+cd $HADOOP_HOME/etc/hadoop
+
+sudo vim core-site.xml
+<configuration>
+<property>
+<name>fs.defaultFS</name>
+<value>hdfs://localhost:9000</value>
+</property>
+</configuration>
+
+
+sudo vim hdfs-site.xml
+<configuration>
+<property>
+<name>dfs.replication</name>
+<value>1</value>
+</property>
+<property>
+<name>dfs.namenode.name.dir</name>
+<value>file:///home/jaskeerat/hadoopdata/hdfs/namenode</value>
+</property>
+<property>
+<name>dfs.datanode.data.dir</name>
+<value>file:///home/jaskeerat/hadoopdata/hdfs/datanode</value>
+</property>
+</configuration>
+
+
+sudo vim mapred-site.xml
+<configuration>
+<property>
+<name>yarn.app.mapreduce.am.env</name>
+<value>HADOOP_MAPRED_HOME=$HADOOP_HOME/home/jaskeerat/hadoop/bin/hadoop</value>
+</property>
+<property>
+<name>mapreduce.map.env</name>
+<value>HADOOP_MAPRED_HOME=$HADOOP_HOME/home/jaskeerat/hadoop/bin/hadoop</value>
+</property>
+<property>
+<name>mapreduce.reduce.env</name>
+<value>HADOOP_MAPRED_HOME=$HADOOP_HOME/home/jaskeerat/hadoop/bin/hadoop</value>
+</property>
+</configuration>
+
+
+sudo vim yarn-site.xml
+<configuration>
+<property>
+<name>yarn.nodemanager.aux-services</name>
+<value>mapreduce_shuffle</value>
+</property>
+</configuration>
+
+
+hdfs namenode -format
+start-dfs.sh
+start-yarn.sh
+
+
+### Installing HIVE ###
+cd ~
+wget https://downloads.apache.org/hive/hive-4.0.0/apache-hive-4.0.0-bin.tar.gz
+tar -xzvf apache-hive-4.0.0-bin.tar.gz
+mv apache-hive-4.0.0-bin hive
+
+sudo vim ~/.bashrc
+export HIVE_HOME=/home/jaskeerat/hive
+export PATH=$PATH:$HIVE_HOME/bin
+source ~/.bashrc
+
+sudo vim $HIVE_HOME/bin/hive-config.sh
+export HADOOP_HOME=/home/jaskeerat/hadoop
+
+
+hdfs dfs -mkdir /tmp
+hdfs dfs -mkdir -p /user/hive/warehouse
+hdfs dfs -chmod g+w /tmp
+hdfs dfs -chmod g+w /user/hive/warehouse
+
+
+mkdir derby
+wget https://downloads.apache.org/db/derby/db-derby-10.15.2.0/db-derby-10.15.2.0-bin.tar.gz
+tar -xzvf db-derby-10.15.2.0-bin.tar.gz
+mv db-derby-10.15.2.0-bin derby
+
+sudo vim ~/.bashrc
+export DERBY_HOME=/home/jaskeerat/derby
+export PATH=$PATH:$DERBY_HOME/bin
+export CLASSPATH=$CLASSPATH:$DERBY_HOME/lib/derby.jar:$DERBY_HOME/lib/derbytools.jar
+source ~/.bashrc
+
+
+cd $HIVE_HOME/conf
+cp hive-default.xml.template hive-site.xml
+sudo vim hive-site.xml
+
+
+schematool -dbType derby -initSchema
+hive
+
+
+### Installing SPARK ###
+wget https://archive.apache.org/dist/spark/spark-3.5.1/spark-3.5.1-bin-hadoop3.tgz
+tar xvf spark-3.5.1-bin-hadoop3.tgz
+sudo mv spark-3.5.1-bin-hadoop3 ~/spark
+
+sudo vim ~/.bashrc
+export SPARK_HOME=/home/jaskeerat/spark
+export PATH=$PATH:$SPARK_HOME/bin
+source ~/.bashrc
+
+
+### Installing Jupyter ###
+sudo apt install python3-venv
+python3 -m venv ~/venv
+source ~/venv/bin/activate
+pip install jupyter pyspark
+pip install ipykernel
+python -m ipykernel install --user --name=pyspark --display-name "PySpark"
+
+
+### Running setup ###
+sudo service ssh start
+sudo service ssh status
+
+start-dfs.sh
+start-yarn.sh
+hdfs dfsadmin -report
+
+stop-dfs.sh
+stop-yarn.sh
+
+source venv/bin/activate
+jupyter notebook
